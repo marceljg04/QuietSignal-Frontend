@@ -15,29 +15,29 @@ export default function Login() {
   };
 
   return (
-    <div className="flex flex-col w-80 p-6 bg-white shadow-xl rounded-xl">
-      <h1 className="text-2xl font-bold text-center mb-4">Login</h1>
-      
+    <div className="card">
+      <h1 className="card-title">Login</h1>
+
       <input
-        className="border p-2 rounded mb-3"
-        placeholder="Usuario"
+        className="input"
+        placeholder="Username"
         value={user}
         onChange={(e) => setUser(e.target.value)}
       />
-      
+
       <input
-        className="border p-2 rounded mb-3"
+        className="input"
         type="password"
-        placeholder="Contraseña"
+        placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      
+
       <button
-        className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+        className="btn btn-primary w-full"
         onClick={handleLogin}
       >
-        Iniciar sesión
+        Log in
       </button>
     </div>
   );

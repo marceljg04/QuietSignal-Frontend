@@ -13,7 +13,7 @@ export default function AuthPage() {
           to="/register"
           className="bg-green-600 text-white p-2 rounded hover:bg-green-700 text-center"
         >
-          Registrarse
+          Sign-in
         </Link>
       </div>
     </div>
