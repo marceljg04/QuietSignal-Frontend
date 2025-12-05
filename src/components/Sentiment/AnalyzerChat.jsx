@@ -30,7 +30,6 @@ export default function AnalyzerChat() {
       (msg) => msg.sender === "user"
     ).length;
 
-    // Simular respuesta del "AI"
     setMessages((prev) => [
       ...prev,
       {
@@ -41,14 +40,12 @@ export default function AnalyzerChat() {
     setError("");
   };
 
-  // Auto scroll hacia abajo
   useEffect(() => {
     requestAnimationFrame(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     });
   }, [messages]);
 
-  // Manejo de la tecla Enter para añadir mensaje
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -57,22 +54,16 @@ export default function AnalyzerChat() {
   };
 
   return (
-    // CAMBIO CLAVE: Quitamos h-screen y flex-col del principal.
-    // Usamos max-w-4xl mx-auto para centrarlo y p-4 para padding interno.
     <div className="max-w-4xl mx-auto w-full p-4 bg-gray-800 dark:bg-gray-900 rounded-xl shadow-2xl">
       
-      {/* 1. Área de Errores */}
       {error && (
         <div className="w-full mb-4 px-4 py-2 text-center rounded-lg bg-red-900 text-red-300 font-medium border border-red-700">
           {error}
         </div>
       )}
 
-      {/* 2. Chat Zone y Control de Altura (EL CONTENEDOR PRINCIPAL DEL CHAT) */}
-      {/* Usamos 'h-[65vh]' para darle una altura fija (65% del viewport) y usar 'flex flex-col' */}
       <div className="flex flex-col h-[65vh] bg-gray-900 rounded-xl p-4 border border-gray-700 shadow-inner">
 
-        {/* Contenedor de Mensajes con Scroll. flex-1 toma el espacio disponible. */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
             {messages.length === 0 ? (
                 <div className="text-center text-gray-500 py-10 select-none">
@@ -103,15 +94,13 @@ export default function AnalyzerChat() {
             <div ref={messagesEndRef} />
         </div>
 
-        {/* Separador visual opcional (línea sutil) */}
         <hr className="my-3 border-gray-700"/>
 
-        {/* 3. Input Zone: Pegada a la parte inferior del contenedor del chat */}
         <div className="pt-2">
             
             <div className="flex items-end mb-4">
                 <textarea
-                    className={`textarea flex-1 min-h-[5rem]`} // Usamos tu clase 'textarea'
+                    className={`textarea flex-1 h-[5rem]`}
                     placeholder="Enter a phrase..."
                     value={text}
                     onChange={(e) => setText(e.target.value)}
@@ -120,7 +109,7 @@ export default function AnalyzerChat() {
                 />
 
                 <button
-                    className={`btn-small ml-box btn-success h-[5rem] flex items-center justify-center`}
+                    className={`btn-small ml-box btn-success h-[6rem] flex items-center justify-center`}
                     onClick={handleAddMessage}
                     disabled={!text.trim()}
                     title="Add phrase (Enter)"
@@ -132,7 +121,6 @@ export default function AnalyzerChat() {
                 </button>
             </div>
 
-            {/* Botón Send All */}
             <button
               className={`w-full py-3 font-bold text-lg rounded-xl bg-gray-700 hover:bg-gray-800 text-white transition-colors duration-150 shadow-lg disabled:opacity-30`}
               onClick={handleSendAll}

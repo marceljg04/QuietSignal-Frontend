@@ -12,7 +12,7 @@ export default function AuthPage() {
 
           <div className="ml-box flex flex-col justify-center">
           <Link to="/register" className="link-btn link-green">
-            Sign-in
+            Sign in
           </Link>
         </div>
       </div>

@@ -33,6 +33,13 @@ export default function Register() {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleRegister();
+    }
+  };
+
   return (
     <div className="card">
       <h1 className="card-title">Register</h1>
@@ -44,6 +51,7 @@ export default function Register() {
         placeholder="Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        onKeyDown={handleKeyDown}
       />
 
       <input
@@ -51,6 +59,7 @@ export default function Register() {
         placeholder="Username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
+        onKeyDown={handleKeyDown}
       />
 
       <input
@@ -59,6 +68,7 @@ export default function Register() {
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        onKeyDown={handleKeyDown}
       />
 
       <input
@@ -67,6 +77,7 @@ export default function Register() {
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        onKeyDown={handleKeyDown}
       />
 
       <button

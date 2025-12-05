@@ -3,12 +3,10 @@
 
 @layer utilities {
     .page-container {
-        /* Estilos para ancho y padding */
-        @apply p-6 md:p-10 max-w-7xl mx-auto; 
+        @apply px-4 pt-5 mx-auto;
     }
 
     .page-full {
-        /* Ocupa la pantalla completa y aplica el fondo */
         @apply flex justify-center min-h-screen bg-gray-800; 
     }
     .page-title {
