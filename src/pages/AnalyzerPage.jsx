@@ -1,5 +1,6 @@
 import Analyzer from "../components/Sentiment/AnalyzerChat";
 import PageHeader from "../components/PageHeader";
+import PageFooter from "../components/PageFooter";
 
 export default function AnalyzerPage() {
   return (
@@ -8,6 +9,9 @@ export default function AnalyzerPage() {
       <PageHeader title="Analyzer" />
       
       <Analyzer />
+
+      <PageFooter />
+      
     </div>
   );
 }
