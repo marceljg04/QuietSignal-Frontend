@@ -1,15 +1,17 @@
-import Analyzer from "../components/Sentiment/Analyzer";
-import LogoutButton from "../components/Auth/Logout";
+import Analyzer from "../components/Sentiment/AnalyzerChat";
+import PageHeader from "../components/PageHeader";
+import PageFooter from "../components/PageFooter";
 
 export default function AnalyzerPage() {
   return (
     <div className="page-container">
-      <div className="page-flex-end">
-        <LogoutButton />
-      </div>
-
-      <h1 className="page-title">Analyzer</h1>
+      
+      <PageHeader title="Analyzer" />
+      
       <Analyzer />
+
+      <PageFooter />
+      
     </div>
   );
 }

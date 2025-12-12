@@ -1,26 +1,29 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../../api/auth";
+import { useAuth } from "../../Context/AuthContext";
 
 export default function Login() {
-  const [user, setUser] = useState("");
+  const [userInput, setUserInput] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
   const handleLogin = async () => {
     setError("");
 
-    if (!user || !password) {
+    if (!userInput || !password) {
       setError("Username and password are required");
       return;
     }
 
     try {
-      const response = await login(user, password);
+      const response = await login(userInput, password);
 
       if (response.success) {
+        setUser(response.data.user);
         navigate("/analyze");
       } else {
         setError(response.errors || response.message || "Login failed");
@@ -28,6 +31,13 @@ export default function Login() {
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
       setError("Login failed, please try again");
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleLogin();
     }
   };
 
@@ -40,8 +50,9 @@ export default function Login() {
       <input
         className="input"
         placeholder="Username"
-        value={user}
-        onChange={(e) => setUser(e.target.value)}
+        value={userInput}
+        onChange={(e) => setUserInput(e.target.value)}
+        onKeyDown={handleKeyDown}
       />
 
       <input
@@ -50,13 +61,14 @@ export default function Login() {
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        onKeyDown={handleKeyDown}
       />
 
       <button
         className="btn btn-primary"
         onClick={handleLogin}
       >
-        Log in
+        Login
       </button>
     </div>
   );

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { register } from "../../api/auth";
+import { register, login } from "../../api/auth";
+import { createJournal } from "../../api/journal";
+import { useAuth } from "../../Context/AuthContext";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -10,6 +12,7 @@ export default function Register() {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
   const handleRegister = async () => {
     setError("");
@@ -26,10 +29,30 @@ export default function Register() {
 
     try {
       await register(name, username, email, password);
+
+      const loginResponse = await login(username, password);
+
+      if (loginResponse.success) {
+        setUser(loginResponse.data.user);
+        navigate("/analyze");
+      } else {
+        setError(loginResponse.message || "Login failed");
+      }
+
+
+      await createJournal(username + " Journal");
+
       navigate("/");
     } catch (err) {
       console.error("Registration error:", err);
       setError(err.response?.data?.detail || "Registration failed");
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleRegister();
     }
   };
 
@@ -44,6 +67,7 @@ export default function Register() {
         placeholder="Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        onKeyDown={handleKeyDown}
       />
 
       <input
@@ -51,6 +75,7 @@ export default function Register() {
         placeholder="Username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
+        onKeyDown={handleKeyDown}
       />
 
       <input
@@ -59,6 +84,7 @@ export default function Register() {
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        onKeyDown={handleKeyDown}
       />
 
       <input
@@ -67,13 +93,11 @@ export default function Register() {
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        onKeyDown={handleKeyDown}
       />
 
-      <button
-        className="btn btn-success"
-        onClick={handleRegister}
-      >
-        Register
+      <button className="btn btn-success" onClick={handleRegister}>
+        Sign in
       </button>
     </div>
   );
