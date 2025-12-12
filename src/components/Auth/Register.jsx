@@ -45,7 +45,15 @@ export default function Register() {
       navigate("/");
     } catch (err) {
       console.error("Registration error:", err);
-      setError(err.response?.data?.detail || "Registration failed");
+      const detail = err.response?.data?.detail;
+
+      if (Array.isArray(detail)) {
+        setError(detail.map(d => d.msg).join(", "));
+      } else if (typeof detail === "string") {
+        setError(detail);
+      } else {
+        setError("Registration failed");
+      }
     }
   };
 
