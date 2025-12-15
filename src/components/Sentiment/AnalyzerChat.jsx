@@ -291,20 +291,34 @@ export default function AnalyzerChat() {
       </div>
     </div>
     {sentimentLabel !== "unknown" && (
-    <div className="absolute top-1/2 -translate-y-1/2 right-10 translate-x-[-35px] flex items-center space-x-3">
-      <span className="text-white font-bold text-2xl select-none">
+    <div
+      className="
+        absolute top-1/2 -translate-y-1/2
+        right-4 lg:right-10 xl:right-16
+        flex items-center gap-3
+      "
+    >
+      <span className="text-white font-bold select-none
+        md:text-lg lg:text-xl xl:text-2xl
+      ">
         {sentimentLabel.toUpperCase()}
       </span>
 
       <button
-        className={`w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-transform transform hover:scale-110 ${
-          sentimentLabel === "positive"
-            ? "bg-green-500"
-            : sentimentLabel === "negative"
-            ? "bg-red-500"
-            : "bg-gray-400"
-        }`}
-        title={`Sentiment: ${sentimentLabel}`}
+        className={`
+          rounded-full flex items-center justify-center shadow-lg
+          transition-transform hover:scale-110
+          md:w-14 md:h-14
+          lg:w-16 lg:h-16
+          xl:w-20 xl:h-20
+          ${
+            sentimentLabel === "positive"
+              ? "bg-green-500"
+              : sentimentLabel === "negative"
+              ? "bg-red-500"
+              : "bg-gray-400"
+          }
+        `}
       >
         {sentimentLabel === "positive" && (
           <svg
