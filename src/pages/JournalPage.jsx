@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
+import { CloudRainWind, CloudDrizzle, Cloud, CloudSun, Sun } from "lucide-react";
 import Layout from "../components/Layout/Layout";
 
 const MOODS = [
-  { value: 1, emoji: "😢", label: "Molt malament" },
-  { value: 2, emoji: "😔", label: "Malament" },
-  { value: 3, emoji: "😐", label: "Normal" },
-  { value: 4, emoji: "🙂", label: "Bé" },
-  { value: 5, emoji: "😊", label: "Molt bé" },
+  { value: 1, icon: CloudRainWind, label: "Molt malament" },
+  { value: 2, icon: CloudDrizzle, label: "Malament" },
+  { value: 3, icon: Cloud, label: "Normal" },
+  { value: 4, icon: CloudSun, label: "Bé" },
+  { value: 5, icon: Sun, label: "Molt bé" },
 ];
 
 export default function JournalPage() {
@@ -40,7 +41,13 @@ export default function JournalPage() {
     });
   }, []);
 
-  const getMoodEmoji = (mood) => MOODS.find((m) => m.value === mood)?.emoji || "";
+  const getMoodIcon = (mood) => {
+    const moodData = MOODS.find((m) => m.value === mood);
+    if (!moodData) return null;
+    const Icon = moodData.icon;
+    return <Icon size={20} strokeWidth={2} />;
+  };
+
   const getMoodLabel = (mood) => MOODS.find((m) => m.value === mood)?.label || "";
 
   const formatDate = (dateStr) => {
@@ -95,24 +102,26 @@ export default function JournalPage() {
           </div>
 
           {/* Filtre per mood */}
-          <div className="mood-legend" style={{ marginBottom: "1rem", gap: "0.5rem" }}>
+          <div className="mood-filter">
             <button
-              className={`btn ${filter === "all" ? "btn-primary" : "btn-ghost"}`}
-              style={{ padding: "0.5rem 0.75rem", fontSize: "0.8rem" }}
+              className={`filter-btn ${filter === "all" ? "active" : ""}`}
               onClick={() => setFilter("all")}
             >
               Tots
             </button>
-            {MOODS.map((mood) => (
-              <button
-                key={mood.value}
-                className={`btn ${filter === String(mood.value) ? "btn-primary" : "btn-ghost"}`}
-                style={{ padding: "0.5rem 0.75rem", fontSize: "0.9rem" }}
-                onClick={() => setFilter(String(mood.value))}
-              >
-                {mood.emoji}
-              </button>
-            ))}
+            {MOODS.map((mood) => {
+              const Icon = mood.icon;
+              return (
+                <button
+                  key={mood.value}
+                  className={`filter-btn filter-mood-${mood.value} ${filter === String(mood.value) ? "active" : ""}`}
+                  onClick={() => setFilter(String(mood.value))}
+                  title={mood.label}
+                >
+                  <Icon size={16} strokeWidth={2} />
+                </button>
+              );
+            })}
           </div>
 
           {/* Llista d'entrades agrupades per dia */}
@@ -125,18 +134,11 @@ export default function JournalPage() {
               Object.keys(filteredEntries).map((date) => (
                 <div key={date} style={{ marginBottom: "1.5rem" }}>
                   {/* Capçalera del dia */}
-                  <div style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "0.75rem",
-                    paddingBottom: "0.5rem",
-                    borderBottom: "1px solid var(--border)"
-                  }}>
-                    <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                  <div className="day-header">
+                    <span className="day-title">
                       {formatDate(date)}
                     </span>
-                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                    <span className="day-average">
                       Mitjana: {getDayAverage(entries[date])}
                     </span>
                   </div>
@@ -145,7 +147,7 @@ export default function JournalPage() {
                   {filteredEntries[date].map((entry) => (
                     <div key={entry.id} className="entry-item">
                       <div className={`entry-mood mood-${entry.mood}`}>
-                        {getMoodEmoji(entry.mood)}
+                        {getMoodIcon(entry.mood)}
                       </div>
                       <div className="entry-content">
                         <div className="entry-time">{entry.time}</div>

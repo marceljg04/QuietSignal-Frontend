@@ -16,7 +16,7 @@ export const login = async (username, password) => {
   const res = await axios.post(`${API}/login`, {
     username,
     password,
-  });
+  }, { withCredentials: true });
   return res.data;
 };
 

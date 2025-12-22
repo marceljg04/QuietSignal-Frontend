@@ -1,48 +1,151 @@
 import { useState, useEffect } from "react";
+import { Send } from "lucide-react";
 import Layout from "../components/Layout/Layout";
 import Calendar from "../components/Calendar/Calendar";
 import YearPixels from "../components/Calendar/YearPixels";
-import MoodSelector, { MOODS } from "../components/Mood/MoodSelector";
+import { analyzePhrase } from "../api/analyze";
+import { saveFeedback } from "../api/feedback";
+
+const MOODS = [
+  { value: 1, emoji: "⛈️", label: "Molt malament" },
+  { value: 2, emoji: "🌧️", label: "Malament" },
+  { value: 3, emoji: "☁️", label: "Normal" },
+  { value: 4, emoji: "⛅", label: "Bé" },
+  { value: 5, emoji: "☀️", label: "Molt bé" },
+];
 
 export default function DashboardPage() {
   const [entries, setEntries] = useState({});
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
-  const [selectedMood, setSelectedMood] = useState(null);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [detectedMood, setDetectedMood] = useState(null);
+  const [analysisResult, setAnalysisResult] = useState(null); // Guardem la resposta completa de l'API
+  const [justSaved, setJustSaved] = useState(false);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Bon dia";
+    if (hour < 18) return "Bona tarda";
+    return "Bona nit";
+  };
+
+  const getPrompt = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Com comences el dia?";
+    if (hour < 18) return "Com va la tarda?";
+    return "Com ha anat el dia?";
+  };
+
+  const getStreak = () => {
+    const dates = Object.keys(entries).sort((a, b) => new Date(b) - new Date(a));
+    if (dates.length === 0) return 0;
+
+    let streak = 0;
+    let currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    for (const dateStr of dates) {
+      const entryDate = new Date(dateStr);
+      entryDate.setHours(0, 0, 0, 0);
+
+      const diffDays = Math.floor((currentDate - entryDate) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === streak) {
+        streak++;
+      } else if (diffDays > streak) {
+        break;
+      }
+    }
+    return streak;
+  };
 
   useEffect(() => {
     // TODO: Fetch entries from API
-    // Dades de mostra
-    const today = new Date().toISOString().split("T")[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-    const twoDaysAgo = new Date(Date.now() - 86400000 * 2).toISOString().split("T")[0];
-
-    setEntries({
-      [today]: [
-        { id: 1, mood: 4, note: "Avui he dormit bé", time: "08:30" },
-        { id: 2, mood: 3, note: "Una mica de feina", time: "14:00" },
-      ],
-      [yesterday]: [
-        { id: 3, mood: 2, note: "Dia complicat a la feina", time: "19:00" },
-      ],
-      [twoDaysAgo]: [
-        { id: 4, mood: 5, note: "Dia perfecte!", time: "21:00" },
-      ],
-    });
+    setEntries({});
   }, []);
 
-  const handleSaveEntry = () => {
-    if (!selectedMood) return;
+  // Converteix el resultat de l'API (negative/neutral/positive + probabilitats) a mood 1-5
+  const labelToMood = (label, probabilities) => {
+    // L'API retorna: label = "negative" | "neutral" | "positive"
+    // probabilities = { "0": prob_neg, "1": prob_neutral, "2": prob_positive }
 
+    const negProb = probabilities["0"] || 0;
+    const neutralProb = probabilities["1"] || 0;
+    const posProb = probabilities["2"] || 0;
+
+    if (label === "negative") {
+      // Si és molt negatiu (alta probabilitat), mood 1; si no, mood 2
+      return negProb > 0.7 ? 1 : 2;
+    } else if (label === "positive") {
+      // Si és molt positiu (alta probabilitat), mood 5; si no, mood 4
+      return posProb > 0.7 ? 5 : 4;
+    } else {
+      // Neutral = mood 3
+      return 3;
+    }
+  };
+
+  // Analitza el sentiment cridant l'API del backend
+  const analyzeSentiment = async (text) => {
+    try {
+      const response = await analyzePhrase(text);
+
+      if (response.success && response.data) {
+        const { label, probabilities } = response.data;
+        // Guardem la resposta completa per enviar-la després amb el feedback
+        setAnalysisResult({ label, probabilities });
+        return labelToMood(label, probabilities);
+      }
+
+      // Fallback si hi ha error
+      setAnalysisResult({ label: "neutral", probabilities: { "0": 0.2, "1": 0.6, "2": 0.2 } });
+      return 3;
+    } catch (error) {
+      console.error("Error analitzant sentiment:", error);
+      // Fallback a neutral si falla l'API
+      setAnalysisResult({ label: "neutral", probabilities: { "0": 0.2, "1": 0.6, "2": 0.2 } });
+      return 3;
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!note.trim()) return;
+
+    setAnalyzing(true);
+
+    // Analitzar el sentiment
+    const mood = await analyzeSentiment(note);
+    setDetectedMood(mood);
+    setAnalyzing(false);
+  };
+
+  const handleConfirmSave = async (finalMood) => {
     setSaving(true);
 
     const now = new Date();
     const time = now.toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" });
 
+    // Guardar feedback per millorar el model
+    if (analysisResult) {
+      try {
+        await saveFeedback({
+          text: note.trim(),
+          predicted_label: analysisResult.label,
+          predicted_probabilities: analysisResult.probabilities,
+          predicted_mood: detectedMood,
+          corrected_mood: finalMood,
+        });
+      } catch (error) {
+        console.error("Error guardant feedback:", error);
+        // Continuem encara que falli el feedback
+      }
+    }
+
     const newEntry = {
       id: Date.now(),
-      mood: selectedMood,
+      mood: finalMood,
       note: note.trim(),
       time,
     };
@@ -52,9 +155,19 @@ export default function DashboardPage() {
       [selectedDate]: [...(prev[selectedDate] || []), newEntry],
     }));
 
-    setSelectedMood(null);
     setNote("");
+    setDetectedMood(null);
+    setAnalysisResult(null);
     setSaving(false);
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 2000);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
   };
 
   const getDayEntries = () => entries[selectedDate] || [];
@@ -87,7 +200,10 @@ export default function DashboardPage() {
     });
   };
 
-  const getMoodEmoji = (mood) => MOODS.find((m) => m.value === mood)?.emoji || "";
+  const getMoodEmoji = (mood) => {
+    const moodData = MOODS.find((m) => m.value === mood);
+    return moodData ? moodData.emoji : null;
+  };
 
   const stats = getStats();
 
@@ -97,8 +213,8 @@ export default function DashboardPage() {
         {/* Stats */}
         <div className="stats-row">
           <div className="stat-item">
-            <div className="stat-value">{stats.days}</div>
-            <div className="stat-label">dies</div>
+            <div className="stat-value">{getStreak()}</div>
+            <div className="stat-label">ratxa</div>
           </div>
           <div className="stat-item">
             <div className="stat-value">{stats.total}</div>
@@ -109,8 +225,8 @@ export default function DashboardPage() {
             <div className="stat-label">mitjana</div>
           </div>
           <div className="stat-item">
-            <div className="stat-value">{stats.best}</div>
-            <div className="stat-label">dies bons</div>
+            <div className="stat-value">{stats.days}</div>
+            <div className="stat-label">dies</div>
           </div>
         </div>
 
@@ -135,26 +251,59 @@ export default function DashboardPage() {
           <div className="dashboard-main">
             {/* Quick Entry */}
             <div className="quick-entry">
-              <div className="quick-entry-title">Com et sents ara?</div>
-              <MoodSelector selected={selectedMood} onSelect={setSelectedMood} />
-
-              {selectedMood && (
-                <div className="quick-entry-note animate-fade-in">
-                  <textarea
-                    className="textarea"
-                    placeholder="Afegeix una nota (opcional)..."
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    rows={2}
-                  />
-                  <button
-                    className="btn btn-primary btn-block mt-1"
-                    onClick={handleSaveEntry}
-                    disabled={saving}
-                  >
-                    {saving ? "Guardant..." : "Guardar"}
-                  </button>
+              {justSaved ? (
+                <div className="quick-entry-success animate-fade-in">
+                  <span className="success-icon">✓</span>
+                  <span>Guardat</span>
                 </div>
+              ) : detectedMood ? (
+                <div className="mood-result animate-fade-in">
+                  <div className="mood-result-label">Com et sents:</div>
+                  <div className="mood-result-options">
+                    {MOODS.map((mood) => (
+                      <button
+                        key={mood.value}
+                        className={`mood-result-btn mood-${mood.value} ${detectedMood === mood.value ? "detected" : ""}`}
+                        onClick={() => handleConfirmSave(mood.value)}
+                        title={mood.label}
+                      >
+                        <span className="mood-emoji">{mood.emoji}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mood-result-hint">
+                    Hem detectat: <strong>{MOODS.find(m => m.value === detectedMood)?.label}</strong>
+                    <br />
+                    <span className="hint-small">Clica per confirmar o tria un altre</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="quick-entry-greeting">{getGreeting()}</div>
+                  <div className="quick-entry-title">{getPrompt()}</div>
+                  <div className="journal-input-container">
+                    <textarea
+                      className="journal-textarea"
+                      placeholder="Escriu com et sents..."
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      rows={3}
+                    />
+                    <button
+                      className="journal-submit"
+                      onClick={handleSubmit}
+                      disabled={!note.trim() || analyzing}
+                      title="Enviar (Enter)"
+                    >
+                      {analyzing ? (
+                        <span className="analyzing-dots">...</span>
+                      ) : (
+                        <Send size={18} />
+                      )}
+                    </button>
+                  </div>
+                </>
               )}
             </div>
 
@@ -166,8 +315,8 @@ export default function DashboardPage() {
               </div>
 
               {getDayAverage() && (
-                <div className="mood-legend" style={{ justifyContent: "flex-start", padding: "0 0 1rem 0" }}>
-                  <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                <div className="day-average-display">
+                  <span>
                     Mitjana del dia: <strong>{getDayAverage()}</strong>
                   </span>
                 </div>
@@ -176,13 +325,13 @@ export default function DashboardPage() {
               <div className="entry-list">
                 {getDayEntries().length === 0 ? (
                   <div className="entry-empty">
-                    Cap entrada aquest dia. Com et sents?
+                    Cap entrada aquest dia
                   </div>
                 ) : (
                   getDayEntries().map((entry) => (
                     <div key={entry.id} className="entry-item">
                       <div className={`entry-mood mood-${entry.mood}`}>
-                        {getMoodEmoji(entry.mood)}
+                        <span className="mood-emoji">{getMoodEmoji(entry.mood)}</span>
                       </div>
                       <div className="entry-content">
                         <div className="entry-time">{entry.time}</div>
@@ -193,21 +342,6 @@ export default function DashboardPage() {
                     </div>
                   ))
                 )}
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar dreta - Llegenda (només desktop) */}
-          <div className="dashboard-sidebar" style={{ display: "none" }}>
-            <div className="year-pixels">
-              <div className="year-pixels-title">Llegenda</div>
-              <div className="mood-legend" style={{ flexDirection: "column", alignItems: "flex-start" }}>
-                {MOODS.map((mood) => (
-                  <div key={mood.value} className="mood-legend-item">
-                    <div className={`mood-legend-color`} style={{ background: `var(--mood-${mood.value})` }} />
-                    <span>{mood.emoji} {mood.label}</span>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
